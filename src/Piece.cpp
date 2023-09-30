@@ -34,12 +34,21 @@ std::vector<Move> King::PossibleMoves(std::array<std::array<Piece*, 8>, 8>& boar
     {
         for (int j = -1; j <= 1; j++)
         {
+            // Skip the current position
+            if (i == 0 && j == 0) continue;
+
             int newRow = pos.x + i;
             int newCol = pos.y + j;
 
             if (WithinBounds(newRow, newCol))
             {
-                allMoves.push_back(Move(pos.x, pos.y, newRow, newCol));
+                Piece* destination = board[newRow][newCol];
+
+                // If the square is empty or enemy piece
+                if (destination == nullptr || destination->GetColor() != this->color)
+                {
+                    allMoves.push_back(Move(pos.x, pos.y, newRow, newCol));
+                }
             }
         }
     }
@@ -162,7 +171,13 @@ std::vector<Move> Knight::PossibleMoves(std::array<std::array<Piece*, 8>, 8>& bo
         // Inside board
         if (WithinBounds(newRow, newCol))
         {
-            allMoves.push_back(Move(pos.x, pos.y, newRow, newCol));
+            Piece* destination = board[newRow][newCol];
+
+            // Square is either empty or enemy piece
+            if (destination == nullptr || destination->GetColor() != this->color)
+            {
+                allMoves.push_back(Move(pos.x, pos.y, newRow, newCol));
+            }
         }
     }
 
@@ -173,19 +188,32 @@ std::vector<Move> Pawn::PossibleMoves(std::array<std::array<Piece*, 8>, 8>& boar
 {
     std::vector<Move> allMoves;
 
-    int forward = (color == 'W') ? 1 : -1;
-    int startRow = (color == 'W') ? 1 : 6;
+    int forward = (this->color == 'W') ? -1 : 1;
 
-    if (WithinBounds(pos.x + forward, pos.y))
+    if (WithinBounds(pos.x + forward, pos.y) && board[pos.x + forward][pos.y] == nullptr)
     {
         allMoves.push_back(Move(pos.x, pos.y, pos.x + forward, pos.y));
 
-        if (pos.x == startRow && WithinBounds(pos.x + 2 * forward, pos.y))
+        if ((this->color == 'W' && pos.x == 6) || (this->color == 'B' && pos.x == 1))
         {
-            allMoves.push_back(Move(pos.x, pos.y, pos.x + 2 * forward, pos.y));
+            if (board[pos.x + 2 * forward][pos.y] == nullptr)
+            {
+                allMoves.push_back(Move(pos.x, pos.y, pos.x + 2 * forward, pos.y));
+            }
+        }
+    }
+
+    // Captures diagonally forward
+    for (int side : {-1, 1})
+    {
+        int newRow = pos.x + forward;
+        int newCol = pos.y + side;
+        if (WithinBounds(newRow, newCol) && board[newRow][newCol] != nullptr
+            && board[newRow][newCol]->GetColor() != this->color)
+        {
+            allMoves.push_back(Move(pos.x, pos.y, newRow, newCol));
         }
     }
 
     return allMoves;
 }
-
