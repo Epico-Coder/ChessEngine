@@ -1,7 +1,9 @@
 #pragma once
-#include <array>
-#include "Piece.h"
 
+#include <array>
+
+#include "Piece.h"
+#include "Move.h"
 
 struct Theme
 {
@@ -9,14 +11,8 @@ struct Theme
     sf::Color color2;
 };
 
-
-struct Move
+class Board
 {
-    int startX, startY, endX, endY;
-};
-
-
-class Board {
 public:
     Board(Theme& theme);
 

@@ -37,7 +37,16 @@ int main()
                 // Left click
                 if (code == 0)
                 {
+                    auto moves = board.PossibleMoves();
 
+                    int len = moves.size();
+                    std::cout << len << std::endl;
+
+                    for (int i = 0; i < len; i++)
+                    {
+                        auto move = moves[i];
+                        std::cout << "(" << move.startX << ", " << move.startY << ")" << "-> (" << move.endX << ", " << move.endY << ")" << std::endl;
+                    }
                 }
 
                 // Right click
