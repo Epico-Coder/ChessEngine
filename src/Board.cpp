@@ -69,10 +69,17 @@ void Board::Draw(sf::RenderWindow& win)
             sf::RectangleShape square(sf::Vector2f(squareSize - (8 * border), squareSize - (8 * border)));
             square.setPosition(border + (col * (squareSize + (1 * border))), border + (row * (squareSize + (1 * border))));
 
-            if ((row + col) % 2 == 0)
-                square.setFillColor(theme.color1);
+            if (isHighlighted(row, col))
+            {
+                square.setFillColor(theme.color3);
+            }
             else
-                square.setFillColor(theme.color2);
+            {
+                if ((row + col) % 2 == 0)
+                    square.setFillColor(theme.color1);
+                else
+                    square.setFillColor(theme.color2);
+            }
 
             win.draw(square);
         }
@@ -144,6 +151,50 @@ std::vector<Move> Board::PossibleMoves()
 bool Board::IsOver() const
 {
     return false;
+}
+
+void Board::Highlight(int row, int col)
+{
+    auto iter = std::find(highlightedSquares.begin(), highlightedSquares.end(), std::make_pair(row, col));
+    
+    if (iter != highlightedSquares.end())
+    {
+        highlightedSquares.erase(iter);
+    }
+    else
+    {
+        highlightedSquares.push_back(std::make_pair(row, col));
+    }
+}
+
+void Board::HighlightPossibleMoves(int row, int col)
+{
+    auto piece = board[row][col];
+
+    if (piece != nullptr)
+    {
+        auto moves = piece->PossibleMoves(board);
+        for (int i = 0; i < moves.size(); i++)
+        {
+            Highlight(moves[i].endX, moves[i].endY);
+        }
+    }
+}
+
+bool Board::isHighlighted(int row, int col) const
+{
+    bool isHighlighted = false;
+
+    for (const auto& pair : highlightedSquares)
+    {
+        if (pair.first == row && pair.second == col)
+        {
+            isHighlighted = true;
+            break;
+        }
+    }
+
+    return isHighlighted;
 }
 
 bool Board::IsChecked() const

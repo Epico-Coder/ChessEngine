@@ -2,6 +2,7 @@
 
 #include "Board.h"
 #include "Piece.h"
+#include "Theme.h"
 
 #include <SFML/Graphics.hpp>
 
@@ -13,7 +14,8 @@ int main()
     Theme theme
     {
         sf::Color(255, 255, 255),
-        sf::Color(128, 128, 128)
+        sf::Color(128, 128, 128),
+        sf::Color(255, 200, 000)
     };
 
     Board board(theme);
@@ -45,14 +47,22 @@ int main()
                     for (int i = 0; i < len; i++)
                     {
                         auto move = moves[i];
-                        std::cout << "(" << move.startX << ", " << move.startY << ")" << "-> (" << move.endX << ", " << move.endY << ")" << std::endl;
+                        std::cout << "(" << move.startX << ", " << move.startY << ")" << "-> (" << move.endX << ", " << move.endY << ")" << std::endl;                            
                     }
+
+                    int row = y / 100;
+                    int col = x / 100;
+
+                    board.HighlightPossibleMoves(row, col);
                 }
 
                 // Right click
                 if (code == 1)
                 {
+                    int row = y / 100;
+                    int col = x / 100;
 
+                    board.Highlight(row, col);
                 }
             }
         }
