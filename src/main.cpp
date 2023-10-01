@@ -41,7 +41,7 @@ int main()
                 {
                     auto moves = board.PossibleMoves();
 
-                    int len = moves.size();
+                    int len = int(moves.size());
                     std::cout << len << std::endl;
 
                     for (int i = 0; i < len; i++)
@@ -53,7 +53,7 @@ int main()
                     int row = y / 100;
                     int col = x / 100;
 
-                    board.HighlightPossibleMoves(row, col);
+                    board.LeftClick(row, col);
                 }
 
                 // Right click
@@ -62,7 +62,7 @@ int main()
                     int row = y / 100;
                     int col = x / 100;
 
-                    board.Highlight(row, col);
+                    board.RightClick(row, col);
                 }
             }
         }

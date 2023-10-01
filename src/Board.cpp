@@ -153,30 +153,42 @@ bool Board::IsOver() const
     return false;
 }
 
-void Board::Highlight(int row, int col)
+void Board::RightClick(int row, int col)
 {
-    auto iter = std::find(highlightedSquares.begin(), highlightedSquares.end(), std::make_pair(row, col));
-    
-    if (iter != highlightedSquares.end())
+    // clear the piece highlights
+    piecehighlightedSquares.clear();
+
+    auto iter = std::find(userhighlightedSquares.begin(), userhighlightedSquares.end(), std::make_pair(row, col));
+
+    // highlight
+    if (iter != userhighlightedSquares.end())
     {
-        highlightedSquares.erase(iter);
+        userhighlightedSquares.erase(iter);
     }
     else
     {
-        highlightedSquares.push_back(std::make_pair(row, col));
+        userhighlightedSquares.push_back(std::make_pair(row, col));
     }
 }
 
-void Board::HighlightPossibleMoves(int row, int col)
+void Board::LeftClick(int row, int col)
 {
+    // clear all highlights
+    piecehighlightedSquares.clear();
+    userhighlightedSquares.clear();
+
     auto piece = board[row][col];
 
     if (piece != nullptr)
     {
-        auto moves = piece->PossibleMoves(board);
-        for (int i = 0; i < moves.size(); i++)
+        if (piece->GetColor() == turn)
         {
-            Highlight(moves[i].endX, moves[i].endY);
+            auto moves = piece->PossibleMoves(board);
+            for (int i = 0; i < moves.size(); i++)
+            {
+                // highlight all the possible moves
+                piecehighlightedSquares.push_back(std::make_pair(moves[i].endX, moves[i].endY));
+            }
         }
     }
 }
@@ -185,7 +197,16 @@ bool Board::isHighlighted(int row, int col) const
 {
     bool isHighlighted = false;
 
-    for (const auto& pair : highlightedSquares)
+    for (const auto& pair : userhighlightedSquares)
+    {
+        if (pair.first == row && pair.second == col)
+        {
+            isHighlighted = true;
+            break;
+        }
+    }
+
+    for (const auto& pair : piecehighlightedSquares)
     {
         if (pair.first == row && pair.second == col)
         {
