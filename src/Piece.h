@@ -24,6 +24,9 @@ public:
     void SetMoved(bool hasMoved);
 
     void Draw(sf::RenderWindow& win, const int& squareSize);
+
+    virtual bool IsAttackingSquare(std::array<std::array<Piece*, 8>, 8>& board, int row, int col) = 0;
+    
     virtual std::vector<Move> PossibleMoves(std::array<std::array<Piece*, 8>, 8>& board) = 0;
 
 protected:
@@ -40,6 +43,8 @@ public:
     using Piece::Piece;
     char GetType() const override { return 'K'; };
 
+    bool IsAttackingSquare(std::array<std::array<Piece*, 8>, 8>& board, int row, int col);
+
     std::vector<Move> NonCastlingMoves(std::array<std::array<Piece*, 8>, 8>& board);
     std::vector<Move> PossibleMoves(std::array<std::array<Piece*, 8>, 8>& board) override;
 };
@@ -50,6 +55,8 @@ public:
     using Piece::Piece;
     char GetType() const override { return 'Q'; };
 
+    bool IsAttackingSquare(std::array<std::array<Piece*, 8>, 8>& board, int row, int col);
+
     std::vector<Move> PossibleMoves(std::array<std::array<Piece*, 8>, 8>& board) override;
 };
 
@@ -58,6 +65,8 @@ class Rook : public Piece
 public:
     using Piece::Piece;
     char GetType() const override { return 'R'; };
+
+    bool IsAttackingSquare(std::array<std::array<Piece*, 8>, 8>& board, int row, int col);
 
     std::vector<Move> PossibleMoves(std::array<std::array<Piece*, 8>, 8>& board) override;
 };
@@ -68,6 +77,8 @@ public:
     using Piece::Piece;
     char GetType() const override { return 'B'; };
 
+    bool IsAttackingSquare(std::array<std::array<Piece*, 8>, 8>& board, int row, int col);
+
     std::vector<Move> PossibleMoves(std::array<std::array<Piece*, 8>, 8>& board) override;
 };
 
@@ -76,6 +87,9 @@ class Knight : public Piece
 public:
     using Piece::Piece;
     char GetType() const override { return 'N'; };
+
+    bool IsAttackingSquare(std::array<std::array<Piece*, 8>, 8>& board, int row, int col);
+    
     std::vector<Move> PossibleMoves(std::array<std::array<Piece*, 8>, 8>& board) override;
 };
 
@@ -85,9 +99,11 @@ public:
     using Piece::Piece;
     char GetType() const override { return 'P'; };
 
+    bool IsAttackingSquare(std::array<std::array<Piece*, 8>, 8>& board, int row, int col);
+
     std::vector<Move> PossibleMoves(std::array<std::array<Piece*, 8>, 8>& board) override;
 };
 
 bool WithinBounds(int row, int col);
 bool SquareUnderAttack(std::array<std::array<Piece*, 8>, 8>& board, int checkRow, int checkCol, char opponentColor);
-
+std::vector<Move> FindLegalMoves(std::vector<Move> allMoves, std::array<std::array<Piece*, 8>, 8>& board, char color);

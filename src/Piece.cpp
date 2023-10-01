@@ -16,27 +16,11 @@ bool SquareUnderAttack(std::array<std::array<Piece*, 8>, 8>& board, int checkRow
         {
             Piece* piece = board[row][col];
 
-            if (piece && piece->GetColor() == opponentColor)
+            if (piece)
             {
-                // get all possible moves from piece
-                std::vector<Move> attacks;
-                if (piece->GetType() == 'K')
+                if (piece->GetColor() == opponentColor)
                 {
-                    King* king = dynamic_cast<King*>(piece);
-                    if (king)
-                    {
-                        attacks = king->NonCastlingMoves(board);
-                    }
-                }
-                else
-                {
-                    attacks = piece->PossibleMoves(board);
-                }
-
-                // check if any move ends in square
-                for (const auto& move : attacks)
-                {
-                    if (move.endX == checkRow && move.endY == checkCol)
+                    if (piece->IsAttackingSquare(board, checkRow, checkCol)) 
                     {
                         return true;
                     }
@@ -46,6 +30,62 @@ bool SquareUnderAttack(std::array<std::array<Piece*, 8>, 8>& board, int checkRow
     }
 
     return false;
+}
+
+std::vector<Move> FindLegalMoves(std::vector<Move> allMoves, std::array<std::array<Piece*, 8>, 8>& board, char color)
+{
+    std::vector<Move> legalMoves;
+
+    // find king
+    int kingRow;
+    int kingCol;
+
+    bool kingFound = false;
+
+    for (int row = 0; row < 8 && !kingFound; row++)
+    {
+        for (int col = 0; col < 8 && !kingFound; col++)
+        {
+            Piece* piece = board[row][col];
+            if (piece)
+            {
+                if (piece->GetType() == 'K' && piece->GetColor() == color)
+                {
+                    kingRow = row;
+                    kingCol = col;
+
+                    kingFound = true;
+                }
+            }
+        }
+    }
+
+    std::cout << kingRow << ", " << kingCol << std::endl;
+
+    for (const Move& move : allMoves)
+    {
+        // create copy
+        auto tempBoard = board;
+        
+        // make move
+        tempBoard[move.endX][move.endY] = tempBoard[move.startX][move.startY];
+        tempBoard[move.startX][move.startY] = nullptr;
+
+        if (tempBoard[move.endX][move.endY]->GetType() == 'K')
+        {
+            kingRow = move.endX;
+            kingCol = move.endY;
+        }
+
+        // check if king under attack
+        char opponentColor = (color == 'W') ? 'B' : 'W';
+        if (!SquareUnderAttack(tempBoard, kingRow, kingCol, opponentColor))
+        {
+            legalMoves.push_back(move);
+        }
+    }
+
+    return legalMoves;
 }
 
 Piece::Piece(char color, const sf::Vector2i& pos, const std::string& filename)
@@ -89,6 +129,33 @@ void Piece::Draw(sf::RenderWindow& win, const int& squareSize)
     win.draw(image);
 }
 
+bool King::IsAttackingSquare(std::array<std::array<Piece*, 8>, 8>& board, int row, int col)
+{
+    for (int i = -1; i <= 1; i++)
+    {
+        for (int j = -1; j <= 1; j++)
+        {
+            if (i == 0 && j == 0)
+            {
+                continue;
+            }
+
+            int newRow = pos.x + i;
+            int newCol = pos.y + j;
+
+            if (WithinBounds(newRow, newCol))
+            {
+                if (newRow == row && newCol == col)
+                {
+                    return true;
+                }
+            }
+        }
+    }
+
+    return false;
+}
+
 std::vector<Move> King::NonCastlingMoves(std::array<std::array<Piece*, 8>, 8>& board)
 {
     std::vector<Move> allMoves;
@@ -98,8 +165,11 @@ std::vector<Move> King::NonCastlingMoves(std::array<std::array<Piece*, 8>, 8>& b
     {
         for (int j = -1; j <= 1; j++)
         {
-            // Skip the current position
-            if (i == 0 && j == 0) continue;
+            // skip the current position
+            if (i == 0 && j == 0)
+            {
+                continue;
+            }
 
             int newRow = pos.x + i;
             int newCol = pos.y + j;
@@ -116,6 +186,8 @@ std::vector<Move> King::NonCastlingMoves(std::array<std::array<Piece*, 8>, 8>& b
             }
         }
     }
+
+
 
     return allMoves;
 }
@@ -168,7 +240,40 @@ std::vector<Move> King::PossibleMoves(std::array<std::array<Piece*, 8>, 8>& boar
         }
     }
 
+    allMoves = FindLegalMoves(allMoves, board, color);
+
     return allMoves;
+}
+
+bool Queen::IsAttackingSquare(std::array<std::array<Piece*, 8>, 8>& board, int row, int col)
+{
+    int dirs[8][2] = { {0,1}, {0,-1}, {1,0}, {-1,0}, {1,1}, {1,-1}, {-1,1}, {-1,-1} };
+    
+    for (auto& dir : dirs)
+    {
+        for (int dist = 1; dist < 8; dist++)
+        {
+            int newRow = pos.x + (dist * dir[0]);
+            int newCol = pos.y + (dist * dir[1]);
+
+            if (!WithinBounds(newRow, newCol))
+            {
+                break;
+            }
+
+            if (newRow == row && newCol == col)
+            {
+                return true;
+            }
+
+            if (board[newRow][newCol] != nullptr)
+            {
+                break;
+            }
+        }
+    }
+
+    return false;
 }
 
 std::vector<Move> Queen::PossibleMoves(std::array<std::array<Piece*, 8>, 8>& board)
@@ -210,7 +315,40 @@ std::vector<Move> Queen::PossibleMoves(std::array<std::array<Piece*, 8>, 8>& boa
         }
     }
 
+    allMoves = FindLegalMoves(allMoves, board, color);
+
     return allMoves;
+}
+
+bool Rook::IsAttackingSquare(std::array<std::array<Piece*, 8>, 8>& board, int row, int col)
+{
+    int dirs[4][2] = { {0,1}, {0,-1}, {1,0}, {-1,0} };
+    
+    for (auto& dir : dirs)
+    {
+        for (int dist = 1; dist < 8; dist++)
+        {
+            int newRow = pos.x + (dist * dir[0]);
+            int newCol = pos.y + (dist * dir[1]);
+
+            if (!WithinBounds(newRow, newCol))
+            {
+                break;
+            }
+
+            if (newRow == row && newCol == col)
+            {
+                return true;
+            }
+
+            if (board[newRow][newCol] != nullptr)
+            {
+                break;
+            }
+        }
+    }
+
+    return false;
 }
 
 std::vector<Move> Rook::PossibleMoves(std::array<std::array<Piece*, 8>, 8>& board)
@@ -252,7 +390,40 @@ std::vector<Move> Rook::PossibleMoves(std::array<std::array<Piece*, 8>, 8>& boar
         }
     }
 
+    allMoves = FindLegalMoves(allMoves, board, color);
+
     return allMoves;
+}
+
+bool Bishop::IsAttackingSquare(std::array<std::array<Piece*, 8>, 8>& board, int row, int col)
+{
+    int dirs[4][2] = { {1,1}, {1,-1}, {-1,1}, {-1,-1} };
+    
+    for (auto& dir : dirs)
+    {
+        for (int dist = 1; dist < 8; dist++)
+        {
+            int newRow = pos.x + (dist * dir[0]);
+            int newCol = pos.y + (dist * dir[1]);
+
+            if (!WithinBounds(newRow, newCol))
+            {
+                break;
+            }
+
+            if (newRow == row && newCol == col)
+            {
+                return true;
+            }
+
+            if (board[newRow][newCol] != nullptr)
+            {
+                break;
+            }
+        }
+    }
+
+    return false;
 }
 
 std::vector<Move> Bishop::PossibleMoves(std::array<std::array<Piece*, 8>, 8>& board)
@@ -294,7 +465,30 @@ std::vector<Move> Bishop::PossibleMoves(std::array<std::array<Piece*, 8>, 8>& bo
         }
     }
 
+    allMoves = FindLegalMoves(allMoves, board, color);
+
     return allMoves;
+}
+
+bool Knight::IsAttackingSquare(std::array<std::array<Piece*, 8>, 8>& board, int row, int col)
+{
+    int moves[8][2] = { {2,1}, {1,2}, {-1,2}, {-2,1}, {-2,-1}, {-1,-2}, {1,-2}, {2,-1} };
+    
+    for (int x = 0; x < 8; x++)
+    {
+        int newRow = pos.x + moves[x][0];
+        int newCol = pos.y + moves[x][1];
+
+        if (WithinBounds(newRow, newCol))
+        {
+            if (newRow == row && newCol == col)
+            {
+                return true;
+            }
+        }
+    }
+
+    return false;
 }
 
 std::vector<Move> Knight::PossibleMoves(std::array<std::array<Piece*, 8>, 8>& board)
@@ -322,7 +516,29 @@ std::vector<Move> Knight::PossibleMoves(std::array<std::array<Piece*, 8>, 8>& bo
         }
     }
 
+    allMoves = FindLegalMoves(allMoves, board, color);
+
     return allMoves;
+}
+
+bool Pawn::IsAttackingSquare(std::array<std::array<Piece*, 8>, 8>& board, int row, int col)
+{
+    int forward = (this->color == 'W') ? -1 : 1;
+    
+    for (int side : {-1, 1})
+    {
+        int newRow = pos.x + forward;
+        int newCol = pos.y + side;
+        if (WithinBounds(newRow, newCol))
+        {
+            if (newRow == row && newCol == col)
+            {
+                return true;
+            }
+        }
+    }
+
+    return false;
 }
 
 std::vector<Move> Pawn::PossibleMoves(std::array<std::array<Piece*, 8>, 8>& board)
@@ -355,6 +571,8 @@ std::vector<Move> Pawn::PossibleMoves(std::array<std::array<Piece*, 8>, 8>& boar
             allMoves.push_back(Move(pos.x, pos.y, newRow, newCol));
         }
     }
+
+    allMoves = FindLegalMoves(allMoves, board, color);
 
     return allMoves;
 }
