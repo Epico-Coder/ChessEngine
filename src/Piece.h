@@ -6,6 +6,7 @@
 #include <array>
 
 #include "Move.h"
+#include "BoardState.h"
 
 class Piece
 {
@@ -27,7 +28,7 @@ public:
 
     virtual bool IsAttackingSquare(std::array<std::array<Piece*, 8>, 8>& board, int row, int col) = 0;
     
-    virtual std::vector<Move> PossibleMoves(std::array<std::array<Piece*, 8>, 8>& board) = 0;
+    virtual std::vector<Move> PossibleMoves(const BoardState& boardState) = 0;
 
 protected:
     char color;
@@ -46,7 +47,7 @@ public:
     bool IsAttackingSquare(std::array<std::array<Piece*, 8>, 8>& board, int row, int col);
 
     std::vector<Move> NonCastlingMoves(std::array<std::array<Piece*, 8>, 8>& board);
-    std::vector<Move> PossibleMoves(std::array<std::array<Piece*, 8>, 8>& board) override;
+    std::vector<Move> PossibleMoves(const BoardState& boardState) override;
 };
 
 class Queen : public Piece
@@ -57,7 +58,7 @@ public:
 
     bool IsAttackingSquare(std::array<std::array<Piece*, 8>, 8>& board, int row, int col);
 
-    std::vector<Move> PossibleMoves(std::array<std::array<Piece*, 8>, 8>& board) override;
+    std::vector<Move> PossibleMoves(const BoardState& boardState) override;
 };
 
 class Rook : public Piece 
@@ -68,7 +69,7 @@ public:
 
     bool IsAttackingSquare(std::array<std::array<Piece*, 8>, 8>& board, int row, int col);
 
-    std::vector<Move> PossibleMoves(std::array<std::array<Piece*, 8>, 8>& board) override;
+    std::vector<Move> PossibleMoves(const BoardState& boardState) override;
 };
 
 class Bishop : public Piece 
@@ -79,7 +80,7 @@ public:
 
     bool IsAttackingSquare(std::array<std::array<Piece*, 8>, 8>& board, int row, int col);
 
-    std::vector<Move> PossibleMoves(std::array<std::array<Piece*, 8>, 8>& board) override;
+    std::vector<Move> PossibleMoves(const BoardState& boardState) override;
 };
 
 class Knight : public Piece 
@@ -90,7 +91,7 @@ public:
 
     bool IsAttackingSquare(std::array<std::array<Piece*, 8>, 8>& board, int row, int col);
     
-    std::vector<Move> PossibleMoves(std::array<std::array<Piece*, 8>, 8>& board) override;
+    std::vector<Move> PossibleMoves(const BoardState& boardState) override;
 };
 
 class Pawn : public Piece 
@@ -101,7 +102,7 @@ public:
 
     bool IsAttackingSquare(std::array<std::array<Piece*, 8>, 8>& board, int row, int col);
 
-    std::vector<Move> PossibleMoves(std::array<std::array<Piece*, 8>, 8>& board) override;
+    std::vector<Move> PossibleMoves(const BoardState& boardState) override;
 };
 
 bool WithinBounds(int row, int col);

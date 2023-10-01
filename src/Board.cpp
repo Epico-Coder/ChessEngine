@@ -15,7 +15,7 @@ Board::Board(Theme& theme)
 void Board::InitalizeBoard()
 {
     // Initialize all to nullptr
-    for (auto& row : board)
+    for (auto& row : boardState.board)
     {
         for (auto& cell : row)
         {
@@ -25,33 +25,33 @@ void Board::InitalizeBoard()
 
     // Black pieces
     {
-        board[0][0] = new Rook('B', sf::Vector2i(0, 0), "b_rook.png");
-        board[0][1] = new Knight('B', sf::Vector2i(0, 1), "b_knight.png");
-        board[0][2] = new Bishop('B', sf::Vector2i(0, 2), "b_bishop.png");
-        board[0][3] = new Queen('B', sf::Vector2i(0, 3), "b_queen.png");
-        board[0][4] = new King('B', sf::Vector2i(0, 4), "b_king.png");
-        board[0][5] = new Bishop('B', sf::Vector2i(0, 5), "b_bishop.png");
-        board[0][6] = new Knight('B', sf::Vector2i(0, 6), "b_knight.png");
-        board[0][7] = new Rook('B', sf::Vector2i(0, 7), "b_rook.png");
+        boardState.board[0][0] = new Rook('B', sf::Vector2i(0, 0), "b_rook.png");
+        boardState.board[0][1] = new Knight('B', sf::Vector2i(0, 1), "b_knight.png");
+        boardState.board[0][2] = new Bishop('B', sf::Vector2i(0, 2), "b_bishop.png");
+        boardState.board[0][3] = new Queen('B', sf::Vector2i(0, 3), "b_queen.png");
+        boardState.board[0][4] = new King('B', sf::Vector2i(0, 4), "b_king.png");
+        boardState.board[0][5] = new Bishop('B', sf::Vector2i(0, 5), "b_bishop.png");
+        boardState.board[0][6] = new Knight('B', sf::Vector2i(0, 6), "b_knight.png");
+        boardState.board[0][7] = new Rook('B', sf::Vector2i(0, 7), "b_rook.png");
         for (int i = 0; i < 8; i++)
         {
-            board[1][i] = new Pawn('B', sf::Vector2i(1, i), "b_pawn.png");
+            boardState.board[1][i] = new Pawn('B', sf::Vector2i(1, i), "b_pawn.png");
         }
     }
 
     // White pieces
     {
-        board[7][0] = new Rook('W', sf::Vector2i(7, 0), "w_rook.png");
-        board[7][1] = new Knight('W', sf::Vector2i(7, 1), "w_knight.png");
-        board[7][2] = new Bishop('W', sf::Vector2i(7, 2), "w_bishop.png");
-        board[7][3] = new Queen('W', sf::Vector2i(7, 3), "w_queen.png");
-        board[7][4] = new King('W', sf::Vector2i(7, 4), "w_king.png");
-        board[7][5] = new Bishop('W', sf::Vector2i(7, 5), "w_bishop.png");
-        board[7][6] = new Knight('W', sf::Vector2i(7, 6), "w_knight.png");
-        board[7][7] = new Rook('W', sf::Vector2i(7, 7), "w_rook.png");
+        boardState.board[7][0] = new Rook('W', sf::Vector2i(7, 0), "w_rook.png");
+        boardState.board[7][1] = new Knight('W', sf::Vector2i(7, 1), "w_knight.png");
+        boardState.board[7][2] = new Bishop('W', sf::Vector2i(7, 2), "w_bishop.png");
+        boardState.board[7][3] = new Queen('W', sf::Vector2i(7, 3), "w_queen.png");
+        boardState.board[7][4] = new King('W', sf::Vector2i(7, 4), "w_king.png");
+        boardState.board[7][5] = new Bishop('W', sf::Vector2i(7, 5), "w_bishop.png");
+        boardState.board[7][6] = new Knight('W', sf::Vector2i(7, 6), "w_knight.png");
+        boardState.board[7][7] = new Rook('W', sf::Vector2i(7, 7), "w_rook.png");
         for (int i = 0; i < 8; i++)
         {
-            board[6][i] = new Pawn('W', sf::Vector2i(6, i), "w_pawn.png");
+            boardState.board[6][i] = new Pawn('W', sf::Vector2i(6, i), "w_pawn.png");
         }
     }
 }
@@ -87,7 +87,7 @@ void Board::Draw(sf::RenderWindow& win)
     }
 
     // Draw pieces
-    for (const auto& row : board)
+    for (const auto& row : boardState.board)
     {
         for (const auto& piece : row)
         {
@@ -105,58 +105,79 @@ void Board::MakeMove(Move move)
     depth++;
     std::cout << "MADE MOVE " << depth << ": (" << move.startX << ", " << move.startY << ")--> (" << move.endX << ", " << move.endY << ")" << std::endl;
 
+    Piece* startPiece = boardState.board[move.startX][move.startY];
+
+    // set en passant
+    if (startPiece->GetType() == 'P' && std::abs(move.endX - move.startX) == 2) 
+    {
+        int enPassantRow = (move.startX + move.endX) / 2;
+        boardState.enPassantSquare = std::make_pair(enPassantRow, move.startY);
+    }
+    else 
+    {
+        boardState.enPassantSquare = std::nullopt;
+    }
+
     // handle captures
-    Piece* capturedPiece = board[move.endX][move.endY];
+    Piece* capturedPiece = boardState.board[move.endX][move.endY];
     if (capturedPiece != nullptr) 
     {
         delete capturedPiece;
     }
 
+    // handle en passant
+    if (startPiece->GetType() == 'P')
+    {
+        if (move.endY != move.startY && boardState.board[move.endX][move.endY] == nullptr)
+        {
+            delete boardState.board[move.startX][move.endY]; // Delete the captured pawn object.
+            boardState.board[move.startX][move.endY] = nullptr;
+        }
+    }
+
     // handle castling
-    if (board[move.startX][move.startY]->GetType() == 'K')
+    if (startPiece->GetType() == 'K')
     {
         // kingside
         if (move.endY - move.startY == 2)
         {
-            Piece* rook = board[move.endX][7];
+            Piece* rook = boardState.board[move.endX][7];
             rook->SetPos(move.endX, 5);
             rook->SetMoved(true);
 
-            board[move.endX][5] = rook;
-            board[move.endX][7] = nullptr;
+            boardState.board[move.endX][5] = rook;
+            boardState.board[move.endX][7] = nullptr;
         }
         // queenside
         else if (move.startY - move.endY == 2)
         {
-            Piece* rook = board[move.endX][0];
+            Piece* rook = boardState.board[move.endX][0];
             rook->SetPos(move.endX, 3);
             rook->SetMoved(true);
 
-            board[move.endX][3] = rook;
-            board[move.endX][0] = nullptr;
+            boardState.board[move.endX][3] = rook;
+            boardState.board[move.endX][0] = nullptr;
         }
     }
 
     // move piece from start to end
-    Piece* piece = board[move.startX][move.startY];
-    piece->SetPos(move.endX, move.endY);
-    piece->SetMoved(true);
+    startPiece->SetPos(move.endX, move.endY);
+    startPiece->SetMoved(true);
 
-    board[move.endX][move.endY] = piece;
-    board[move.startX][move.startY] = nullptr;
-    
+    boardState.board[move.endX][move.endY] = startPiece;
+    boardState.board[move.startX][move.startY] = nullptr;
 
     // handle promotion
-    Piece* end = board[move.endX][move.endY];
+    Piece* end = boardState.board[move.endX][move.endY];
     if (end)
     {
         if (end->GetType() == 'P')
         {
             if (move.endX == 0 || move.endX == 7)
             {
-                if (board[move.endX][move.endY] != nullptr)
+                if (boardState.board[move.endX][move.endY] != nullptr)
                 {
-                    delete board[move.endX][move.endY];
+                    delete boardState.board[move.endX][move.endY];
                 }
 
                 std::string filename = "_queen.png";
@@ -164,7 +185,7 @@ void Board::MakeMove(Move move)
                 std::cout << filename << std::endl;
 
                 Piece* piece = new Queen(turn, sf::Vector2i(move.endX, move.endY), filename);
-                board[move.endX][move.endY] = piece;
+                boardState.board[move.endX][move.endY] = piece;
             }
         }
     }
@@ -202,12 +223,12 @@ std::vector<Move> Board::PossibleMoves()
     {
         for (int col = 0; col < 8; col++)
         {
-            auto piece = board[row][col];
+            auto piece = boardState.board[row][col];
             if (piece != nullptr)
             {
                 if (piece->GetColor() == turn)
                 {
-                    std::vector<Move> pieceMoves = piece->PossibleMoves(board);
+                    std::vector<Move> pieceMoves = piece->PossibleMoves(boardState);
                     allMoves.insert(allMoves.end(), pieceMoves.begin(), pieceMoves.end());
                 }
             }
@@ -245,7 +266,7 @@ void Board::RightClick(int row, int col)
 
 void Board::LeftClick(int row, int col)
 {
-    Piece* clickedPiece = board[row][col];
+    Piece* clickedPiece = boardState.board[row][col];
 
     // clicked on a piece before
     if (lastClickedPiece != nullptr)
@@ -282,7 +303,7 @@ void Board::LeftClick(int row, int col)
     {
         if (clickedPiece->GetColor() == turn)
         {
-            auto moves = clickedPiece->PossibleMoves(board);
+            auto moves = clickedPiece->PossibleMoves(boardState);
             for (const auto& move : moves)
             {
                 // highlight all the possible moves

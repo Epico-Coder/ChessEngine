@@ -1,10 +1,12 @@
 #pragma once
 
 #include <array>
+#include <optional>
 
 #include "Piece.h"
 #include "Move.h"
 #include "Theme.h"
+#include "BoardState.h"
 
 class Board
 {
@@ -24,8 +26,6 @@ public:
     {
         std::cout << "Debug" << std::endl;
 
-        board;
-
         lastClickedPiece;
 
         turn;
@@ -44,9 +44,13 @@ public:
 private:
     char turn;
     int depth;
+
     Theme theme;
-    std::array<std::array<Piece*, 8>, 8> board;
+
+    BoardState boardState;
+
     std::vector<std::pair<int, int>> piecehighlightedSquares;
     std::vector<std::pair<int, int>> userhighlightedSquares;
+
     Piece* lastClickedPiece = nullptr;
 };

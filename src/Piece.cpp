@@ -192,10 +192,12 @@ std::vector<Move> King::NonCastlingMoves(std::array<std::array<Piece*, 8>, 8>& b
     return allMoves;
 }
 
-std::vector<Move> King::PossibleMoves(std::array<std::array<Piece*, 8>, 8>& board)
+std::vector<Move> King::PossibleMoves(const BoardState& boardState)
 {
     std::vector<Move> allMoves;
     
+    auto board = boardState.board;
+
     std::vector<Move> nonCastlingMoves = NonCastlingMoves(board);
     allMoves.insert(allMoves.end(), nonCastlingMoves.begin(), nonCastlingMoves.end());
 
@@ -276,9 +278,11 @@ bool Queen::IsAttackingSquare(std::array<std::array<Piece*, 8>, 8>& board, int r
     return false;
 }
 
-std::vector<Move> Queen::PossibleMoves(std::array<std::array<Piece*, 8>, 8>& board)
+std::vector<Move> Queen::PossibleMoves(const BoardState& boardState)
 {
     std::vector<Move> allMoves;
+
+    auto board = boardState.board;
 
     int dirs[8][2] = { {0,1}, {0,-1}, {1,0}, {-1,0}, {1,1}, {1,-1}, {-1,1}, {-1,-1} };
 
@@ -351,9 +355,11 @@ bool Rook::IsAttackingSquare(std::array<std::array<Piece*, 8>, 8>& board, int ro
     return false;
 }
 
-std::vector<Move> Rook::PossibleMoves(std::array<std::array<Piece*, 8>, 8>& board)
+std::vector<Move> Rook::PossibleMoves(const BoardState& boardState)
 {
     std::vector<Move> allMoves;
+
+    auto board = boardState.board;
 
     int dirs[4][2] = { {0,1}, {0,-1}, {1,0}, {-1,0} };
 
@@ -426,9 +432,11 @@ bool Bishop::IsAttackingSquare(std::array<std::array<Piece*, 8>, 8>& board, int 
     return false;
 }
 
-std::vector<Move> Bishop::PossibleMoves(std::array<std::array<Piece*, 8>, 8>& board)
+std::vector<Move> Bishop::PossibleMoves(const BoardState& boardState)
 {
     std::vector<Move> allMoves;
+
+    auto board = boardState.board;
 
     int dirs[4][2] = { {1,1}, {1,-1}, {-1,1}, {-1,-1} };
 
@@ -491,10 +499,12 @@ bool Knight::IsAttackingSquare(std::array<std::array<Piece*, 8>, 8>& board, int 
     return false;
 }
 
-std::vector<Move> Knight::PossibleMoves(std::array<std::array<Piece*, 8>, 8>& board)
+std::vector<Move> Knight::PossibleMoves(const BoardState& boardState)
 {
     std::vector<Move> allMoves;
 
+    auto board = boardState.board;
+    
     // Relative directions
     int moves[8][2] = { {2,1}, {1,2}, {-1,2}, {-2,1}, {-2,-1}, {-1,-2}, {1,-2}, {2,-1} };
 
@@ -541,12 +551,15 @@ bool Pawn::IsAttackingSquare(std::array<std::array<Piece*, 8>, 8>& board, int ro
     return false;
 }
 
-std::vector<Move> Pawn::PossibleMoves(std::array<std::array<Piece*, 8>, 8>& board)
+std::vector<Move> Pawn::PossibleMoves(const BoardState& boardState)
 {
     std::vector<Move> allMoves;
 
+    auto board = boardState.board;
+
     int forward = (this->color == 'W') ? -1 : 1;
 
+    // moves forward
     if (WithinBounds(pos.x + forward, pos.y) && board[pos.x + forward][pos.y] == nullptr)
     {
         allMoves.push_back(Move(pos.x, pos.y, pos.x + forward, pos.y));
@@ -560,15 +573,23 @@ std::vector<Move> Pawn::PossibleMoves(std::array<std::array<Piece*, 8>, 8>& boar
         }
     }
 
-    // Captures diagonally forward
     for (int side : {-1, 1})
     {
         int newRow = pos.x + forward;
         int newCol = pos.y + side;
-        if (WithinBounds(newRow, newCol) && board[newRow][newCol] != nullptr
-            && board[newRow][newCol]->GetColor() != this->color)
+        if (WithinBounds(newRow, newCol))
         {
-            allMoves.push_back(Move(pos.x, pos.y, newRow, newCol));
+            // captures diagonally forward
+            if (board[newRow][newCol] != nullptr && board[newRow][newCol]->GetColor() != this->color)
+            {
+                allMoves.push_back(Move(pos.x, pos.y, newRow, newCol));
+            }
+
+            // en passant
+            if (boardState.enPassantSquare && boardState.enPassantSquare->first == newRow && boardState.enPassantSquare->second == newCol)
+            {
+                allMoves.push_back(Move(pos.x, pos.y, newRow, newCol));
+            }
         }
     }
 
