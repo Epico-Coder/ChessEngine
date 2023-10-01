@@ -16,6 +16,9 @@ public:
     virtual ~Piece() = default;
 
     char GetColor() const;
+    sf::Vector2i GetPos() const;
+
+    void SetPos(int row, int col);
 
     void Draw(sf::RenderWindow& win, const int& squareSize);
     virtual std::vector<Move> PossibleMoves(std::array<std::array<Piece*, 8>, 8>& board) = 0;

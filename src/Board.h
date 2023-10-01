@@ -20,6 +20,19 @@ public:
     int Evaluate();
     std::vector<Move> PossibleMoves();
 
+    void Test(int row, int col)
+    {
+        /*
+        Piece* piece = board[row][col];
+
+        piece->SetPos(4, 4);
+
+        board[4][4] = piece;
+
+        board[row][col] = nullptr;
+        */
+    }
+
     void RightClick(int row, int col);
     void LeftClick(int row, int col);
     bool isHighlighted(int row, int col) const;
@@ -33,4 +46,5 @@ private:
     std::array<std::array<Piece*, 8>, 8> board;
     std::vector<std::pair<int, int>> piecehighlightedSquares;
     std::vector<std::pair<int, int>> userhighlightedSquares;
+    Piece* lastClickedPiece = nullptr;
 };

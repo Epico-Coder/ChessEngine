@@ -47,7 +47,7 @@ int main()
                     for (int i = 0; i < len; i++)
                     {
                         auto move = moves[i];
-                        std::cout << "(" << move.startX << ", " << move.startY << ")" << "-> (" << move.endX << ", " << move.endY << ")" << std::endl;                            
+                        //std::cout << "(" << move.startX << ", " << move.startY << ")" << "-> (" << move.endX << ", " << move.endY << ")" << std::endl;                            
                     }
 
                     int row = y / 100;
@@ -63,6 +63,22 @@ int main()
                     int col = x / 100;
 
                     board.RightClick(row, col);
+                }
+            }
+
+            if (event.type == sf::Event::MouseButtonPressed)
+            {
+                int code = event.mouseButton.button;
+                int x = event.mouseButton.x;
+                int y = event.mouseButton.y;
+
+                // Left click
+                if (code == 0)
+                {
+                    int row = y / 100;
+                    int col = x / 100;
+
+                    board.Test(row, col);
                 }
             }
         }

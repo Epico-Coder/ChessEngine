@@ -17,6 +17,16 @@ char Piece::GetColor() const
     return color;
 }
 
+sf::Vector2i Piece::GetPos() const
+{
+    return pos;
+}
+
+void Piece::SetPos(int row, int col)
+{
+    pos = sf::Vector2i(row, col);
+}
+
 void Piece::Draw(sf::RenderWindow& win, const int& squareSize)
 {
     float x = (pos.y * squareSize) + (squareSize - image.getGlobalBounds().width) / 2.0f;

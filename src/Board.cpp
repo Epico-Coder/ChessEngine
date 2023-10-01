@@ -1,5 +1,6 @@
 #include <iostream>
 #include <math.h>
+#include <algorithm>
 
 #include "Board.h"
 
@@ -101,7 +102,43 @@ void Board::Draw(sf::RenderWindow& win)
 
 void Board::MakeMove(Move move)
 {
-    std::cout << move.startX << std::endl;
+    std::cout << "MADE MOVE: (" << move.startX << ", " << move.startY << ") --> (" << move.endX << ", " << move.endY << ")" << std::endl;
+
+    // handle captures
+    Piece* capturedPiece = board[move.endX][move.endY];
+    if (capturedPiece != nullptr) 
+    {
+        delete capturedPiece;
+    }
+
+    // move piece from start to end
+    Piece* piece = board[move.startX][move.startY];
+    piece->SetPos(move.endX, move.endY);
+
+    board[move.endX][move.endY] = piece;
+    board[move.startX][move.startY] = nullptr;
+
+    // handle promotion
+    if (dynamic_cast<Pawn*>(board[move.endX][move.endY]) != nullptr)
+    {
+        if (move.endX == 0 || move.endX == 7)
+        {
+            if (board[move.endX][move.endY] != nullptr)
+            {
+                delete board[move.endX][move.endY];
+            }
+
+            char color = board[move.endX][move.endY]->GetColor();
+            std::string filename = "_queen.png";
+            filename.insert(filename.begin(), std::tolower(color));
+
+            Piece* piece = new Queen(color, sf::Vector2i(move.endX, move.endY), filename);
+            board[move.endX][move.endY] = piece;
+        }
+    }
+
+    // update turn
+    Update();
 }
 
 void Board::Update()
@@ -169,51 +206,68 @@ void Board::RightClick(int row, int col)
     {
         userhighlightedSquares.push_back(std::make_pair(row, col));
     }
+
+    // reset left click
+    lastClickedPiece = nullptr;
 }
 
 void Board::LeftClick(int row, int col)
 {
+    Piece* clickedPiece = board[row][col];
+
+    // clicked on a piece before
+    if (lastClickedPiece != nullptr)
+    {
+        // clicked on same piece now
+        if (lastClickedPiece == clickedPiece)
+        {
+            userhighlightedSquares.clear();
+            piecehighlightedSquares.clear();
+
+            lastClickedPiece = nullptr;
+
+            return;
+        }
+        // clicked on a highlight (possible move)
+        if (isHighlighted(row, col))
+        {
+            piecehighlightedSquares.clear();
+            userhighlightedSquares.clear();
+
+            Move move(lastClickedPiece->GetPos().x, lastClickedPiece->GetPos().y, row, col);
+            MakeMove(move);
+
+            return;
+        }
+    }
+
     // clear all highlights
     piecehighlightedSquares.clear();
     userhighlightedSquares.clear();
 
-    auto piece = board[row][col];
-
-    if (piece != nullptr)
+    // clicked on a piece now
+    if (clickedPiece != nullptr)
     {
-        if (piece->GetColor() == turn)
+        if (clickedPiece->GetColor() == turn)
         {
-            auto moves = piece->PossibleMoves(board);
-            for (int i = 0; i < moves.size(); i++)
+            auto moves = clickedPiece->PossibleMoves(board);
+            for (const auto& move : moves)
             {
                 // highlight all the possible moves
-                piecehighlightedSquares.push_back(std::make_pair(moves[i].endX, moves[i].endY));
+                piecehighlightedSquares.emplace_back(std::make_pair(move.endX, move.endY));
             }
         }
     }
+
+    lastClickedPiece = clickedPiece;
 }
 
 bool Board::isHighlighted(int row, int col) const
 {
-    bool isHighlighted = false;
+    auto predicate = [row, col](const auto& pair) { return (pair.first == row) && (pair.second == col); };
 
-    for (const auto& pair : userhighlightedSquares)
-    {
-        if (pair.first == row && pair.second == col)
-        {
-            isHighlighted = true;
-            break;
-        }
-    }
-
-    for (const auto& pair : piecehighlightedSquares)
-    {
-        if (pair.first == row && pair.second == col)
-        {
-            isHighlighted = true;
-            break;
-        }
-    }
+    bool isHighlighted = (std::find_if(userhighlightedSquares.begin(), userhighlightedSquares.end(), predicate) != userhighlightedSquares.end() || 
+                          std::find_if(piecehighlightedSquares.begin(), piecehighlightedSquares.end(), predicate) != piecehighlightedSquares.end());
 
     return isHighlighted;
 }
