@@ -22,15 +22,16 @@ public:
 
     void Test(int row, int col)
     {
-        /*
-        Piece* piece = board[row][col];
+        std::cout << "Debug" << std::endl;
 
-        piece->SetPos(4, 4);
+        board;
 
-        board[4][4] = piece;
+        lastClickedPiece;
 
-        board[row][col] = nullptr;
-        */
+        turn;
+
+        std::cout << "Debug" << std::endl;
+
     }
 
     void RightClick(int row, int col);
@@ -42,6 +43,7 @@ public:
 
 private:
     char turn;
+    int depth;
     Theme theme;
     std::array<std::array<Piece*, 8>, 8> board;
     std::vector<std::pair<int, int>> piecehighlightedSquares;

@@ -5,7 +5,7 @@
 #include "Board.h"
 
 Board::Board(Theme& theme) 
-    : theme(theme)
+    : theme(theme), depth(0)
 {
     turn = 'W';
 
@@ -102,7 +102,8 @@ void Board::Draw(sf::RenderWindow& win)
 
 void Board::MakeMove(Move move)
 {
-    std::cout << "MADE MOVE: (" << move.startX << ", " << move.startY << ") --> (" << move.endX << ", " << move.endY << ")" << std::endl;
+    depth++;
+    std::cout << "MADE MOVE " << depth << ": (" << move.startX << ", " << move.startY << ")--> (" << move.endX << ", " << move.endY << ")" << std::endl;
 
     // handle captures
     Piece* capturedPiece = board[move.endX][move.endY];
@@ -111,29 +112,60 @@ void Board::MakeMove(Move move)
         delete capturedPiece;
     }
 
+    // handle castling
+    if (board[move.startX][move.startY]->GetType() == 'K')
+    {
+        // kingside
+        if (move.endY - move.startY == 2)
+        {
+            Piece* rook = board[move.endX][7];
+            rook->SetPos(move.endX, 5);
+            rook->SetMoved(true);
+
+            board[move.endX][5] = rook;
+            board[move.endX][7] = nullptr;
+        }
+        // queenside
+        else if (move.startY - move.endY == 2)
+        {
+            Piece* rook = board[move.endX][0];
+            rook->SetPos(move.endX, 3);
+            rook->SetMoved(true);
+
+            board[move.endX][3] = rook;
+            board[move.endX][0] = nullptr;
+        }
+    }
+
     // move piece from start to end
     Piece* piece = board[move.startX][move.startY];
     piece->SetPos(move.endX, move.endY);
+    piece->SetMoved(true);
 
     board[move.endX][move.endY] = piece;
     board[move.startX][move.startY] = nullptr;
+    
 
     // handle promotion
-    if (dynamic_cast<Pawn*>(board[move.endX][move.endY]) != nullptr)
+    Piece* end = board[move.endX][move.endY];
+    if (end)
     {
-        if (move.endX == 0 || move.endX == 7)
+        if (end->GetType() == 'P')
         {
-            if (board[move.endX][move.endY] != nullptr)
+            if (move.endX == 0 || move.endX == 7)
             {
-                delete board[move.endX][move.endY];
+                if (board[move.endX][move.endY] != nullptr)
+                {
+                    delete board[move.endX][move.endY];
+                }
+
+                std::string filename = "_queen.png";
+                filename.insert(filename.begin(), std::tolower(turn));
+                std::cout << filename << std::endl;
+
+                Piece* piece = new Queen(turn, sf::Vector2i(move.endX, move.endY), filename);
+                board[move.endX][move.endY] = piece;
             }
-
-            char color = board[move.endX][move.endY]->GetColor();
-            std::string filename = "_queen.png";
-            filename.insert(filename.begin(), std::tolower(color));
-
-            Piece* piece = new Queen(color, sf::Vector2i(move.endX, move.endY), filename);
-            board[move.endX][move.endY] = piece;
         }
     }
 

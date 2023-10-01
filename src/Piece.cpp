@@ -1,12 +1,55 @@
 #include "Piece.h"
 
+#include <iostream>
+
 bool WithinBounds(int row, int col)
 {
     return (row >= 0 && row < 8) && (col >= 0 && col < 8);
 }
 
+bool SquareUnderAttack(std::array<std::array<Piece*, 8>, 8>& board, int checkRow, int checkCol, char opponentColor)
+{
+    // get all opponent's pieces
+    for (int row = 0; row < 8; row++)
+    {
+        for (int col = 0; col < 8; col++)
+        {
+            Piece* piece = board[row][col];
+
+            if (piece && piece->GetColor() == opponentColor)
+            {
+                // get all possible moves from piece
+                std::vector<Move> attacks;
+                if (piece->GetType() == 'K')
+                {
+                    King* king = dynamic_cast<King*>(piece);
+                    if (king)
+                    {
+                        attacks = king->NonCastlingMoves(board);
+                    }
+                }
+                else
+                {
+                    attacks = piece->PossibleMoves(board);
+                }
+
+                // check if any move ends in square
+                for (const auto& move : attacks)
+                {
+                    if (move.endX == checkRow && move.endY == checkCol)
+                    {
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+
+    return false;
+}
+
 Piece::Piece(char color, const sf::Vector2i& pos, const std::string& filename)
-    : color(color), pos(pos) 
+    : color(color), pos(pos), moved(false)
 {
     texture.loadFromFile("resources/images/" + filename);
     image.setTexture(texture);
@@ -27,6 +70,16 @@ void Piece::SetPos(int row, int col)
     pos = sf::Vector2i(row, col);
 }
 
+bool Piece::GetMoved() const
+{
+    return moved;
+}
+
+void Piece::SetMoved(bool hasMoved)
+{
+    moved = hasMoved;
+}
+
 void Piece::Draw(sf::RenderWindow& win, const int& squareSize)
 {
     float x = (pos.y * squareSize) + (squareSize - image.getGlobalBounds().width) / 2.0f;
@@ -36,10 +89,11 @@ void Piece::Draw(sf::RenderWindow& win, const int& squareSize)
     win.draw(image);
 }
 
-std::vector<Move> King::PossibleMoves(std::array<std::array<Piece*, 8>, 8>& board)
+std::vector<Move> King::NonCastlingMoves(std::array<std::array<Piece*, 8>, 8>& board)
 {
     std::vector<Move> allMoves;
 
+    // checking in all directions
     for (int i = -1; i <= 1; i++)
     {
         for (int j = -1; j <= 1; j++)
@@ -66,18 +120,95 @@ std::vector<Move> King::PossibleMoves(std::array<std::array<Piece*, 8>, 8>& boar
     return allMoves;
 }
 
+std::vector<Move> King::PossibleMoves(std::array<std::array<Piece*, 8>, 8>& board)
+{
+    std::vector<Move> allMoves;
+    
+    std::vector<Move> nonCastlingMoves = NonCastlingMoves(board);
+    allMoves.insert(allMoves.end(), nonCastlingMoves.begin(), nonCastlingMoves.end());
+
+    // checking for castle
+    if (!moved)
+    {
+        std::cout << "Not Moved!" << std::endl;
+
+        int kingRow = pos.x;
+        char opponentColor = (color == 'W') ? 'B' : 'W';
+
+        // kingside
+        Piece* rightRook = board[kingRow][7];
+        if (rightRook && !(rightRook->GetMoved()))
+        {
+            if (board[kingRow][5] == nullptr && board[kingRow][6] == nullptr)
+            {
+                if (!SquareUnderAttack(board, kingRow, 4, opponentColor) &&
+                    !SquareUnderAttack(board, kingRow, 5, opponentColor) &&
+                    !SquareUnderAttack(board, kingRow, 6, opponentColor))
+                {
+                    allMoves.push_back(Move(pos.x, pos.y, pos.x, pos.y + 2));
+                }
+            }
+        }
+
+        // queenside
+        Piece* leftRook = board[kingRow][0];
+        if (leftRook && !(leftRook->GetMoved()))
+        {
+            if (board[kingRow][1] == nullptr && board[kingRow][2] == nullptr && board[kingRow][3] == nullptr)
+            {
+                if (!SquareUnderAttack(board, kingRow, 4, opponentColor) &&
+                    !SquareUnderAttack(board, kingRow, 3, opponentColor) &&
+                    !SquareUnderAttack(board, kingRow, 2, opponentColor))
+                {
+                    {
+                        allMoves.push_back(Move(pos.x, pos.y, pos.x, pos.y - 2));
+                    }
+                }
+            }
+        }
+    }
+
+    return allMoves;
+}
+
 std::vector<Move> Queen::PossibleMoves(std::array<std::array<Piece*, 8>, 8>& board)
 {
     std::vector<Move> allMoves;
 
-    Rook tempRook(color, pos, "...");
-    Bishop tempBishop(color, pos, "...");
+    int dirs[8][2] = { {0,1}, {0,-1}, {1,0}, {-1,0}, {1,1}, {1,-1}, {-1,1}, {-1,-1} };
 
-    std::vector<Move> rookMoves = tempRook.PossibleMoves(board);
-    std::vector<Move> bishopMoves = tempBishop.PossibleMoves(board);
+    // Checking in horizontal, vertical, and diagnol direction
+    for (auto& dir : dirs)
+    {
+        for (int dist = 1; dist < 8; dist++)
+        {
+            int newRow = pos.x + (dist * dir[0]);
+            int newCol = pos.y + (dist * dir[1]);
 
-    allMoves.insert(allMoves.end(), rookMoves.begin(), rookMoves.end());
-    allMoves.insert(allMoves.end(), bishopMoves.begin(), bishopMoves.end());
+            // Out of board
+            if (!WithinBounds(newRow, newCol))
+            {
+                break;
+            }
+
+            // Empty square
+            if (board[newRow][newCol] == nullptr)
+            {
+                allMoves.push_back(Move(pos.x, pos.y, newRow, newCol));
+            }
+
+            // Hits a piece
+            else
+            {
+                // Enemy piece
+                if (board[newRow][newCol]->GetColor() != this->color)
+                {
+                    allMoves.push_back(Move(pos.x, pos.y, newRow, newCol));
+                }
+                break;
+            }
+        }
+    }
 
     return allMoves;
 }
