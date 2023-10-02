@@ -60,8 +60,6 @@ std::vector<Move> FindLegalMoves(std::vector<Move> allMoves, std::array<std::arr
         }
     }
 
-    std::cout << kingRow << ", " << kingCol << std::endl;
-
     for (const Move& move : allMoves)
     {
         // create copy

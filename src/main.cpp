@@ -37,17 +37,21 @@ int main()
                 int y = event.mouseButton.y;
 
                 // Left click
-                if (code == 0)
+
+                if (!board.IsOver())
                 {
-                    auto moves = board.PossibleMoves();
+                    if (code == 0)
+                    {
+                        auto moves = board.PossibleMoves();
 
-                    int len = int(moves.size());
-                    std::cout << len << std::endl;
+                        int len = int(moves.size());
+                        std::cout << len << std::endl;
 
-                    int row = y / 100;
-                    int col = x / 100;
+                        int row = y / 100;
+                        int col = x / 100;
 
-                    board.LeftClick(row, col);
+                        board.LeftClick(row, col);
+                    }
                 }
 
                 // Right click

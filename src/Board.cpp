@@ -5,10 +5,8 @@
 #include "Board.h"
 
 Board::Board(Theme& theme) 
-    : theme(theme), depth(0)
+    : theme(theme), depth(0), turn('W'), gameOver(false), result(0), movesSincePawnOrCapture(0)
 {
-    turn = 'W';
-
     InitalizeBoard();
 }
 
@@ -59,7 +57,7 @@ void Board::InitalizeBoard()
 void Board::Draw(sf::RenderWindow& win)
 {
     const int squareSize = 100;
-    
+
     // Draw board
     for (int row = 0; row < 8; row++)
     {
@@ -87,16 +85,65 @@ void Board::Draw(sf::RenderWindow& win)
     }
 
     // Draw pieces
-    for (const auto& row : boardState.board)
+    if (!IsOver())
     {
-        for (const auto& piece : row)
+        for (const auto& row : boardState.board)
         {
-            // If not nullptr
-            if (piece)
+            for (const auto& piece : row)
             {
-                piece->Draw(win, squareSize);
+                // If not nullptr
+                if (piece)
+                {
+                    piece->Draw(win, squareSize);
+                }
             }
         }
+    }
+
+    // Draw game over screen
+    else
+    {
+        // main screen
+        int size = 600;
+        int borderThickness = 10;
+
+        sf::RectangleShape background(sf::Vector2f(size, size));
+        background.setFillColor(sf::Color(192, 192, 192));
+        background.setPosition((win.getSize().x - size) / 2, (win.getSize().y - size) / 2);
+
+        // border
+        sf::RectangleShape border(sf::Vector2f(size - borderThickness, size - borderThickness));
+        border.setPosition((win.getSize().x - (size - borderThickness)) / 2, (win.getSize().y - (size - borderThickness)) / 2);
+        border.setFillColor(sf::Color::Transparent);
+        border.setOutlineThickness(borderThickness / 2);
+        border.setOutlineColor(sf::Color::Red);
+
+        // heading
+        sf::Font fontBold;
+        fontBold.loadFromFile("resources/fonts/Roboto-Bold.ttf");
+
+        std::string winner;
+        if (result == 1)  winner = "White wins!";
+        if (result == 0)  winner = "Draw!";
+        if (result == -1) winner = "Black wins!";
+
+        sf::Text headingText(winner, fontBold, 50);
+        headingText.setFillColor(sf::Color::Black);
+        headingText.setPosition((win.getSize().x - headingText.getLocalBounds().width) / 2, ((win.getSize().y - headingText.getLocalBounds().height) / 2) - 100);
+
+        // below text
+        sf::Font fontLight;
+        fontLight.loadFromFile("resources/fonts/Roboto-LightItalic.ttf");
+
+        sf::Text smallerText(gameOverMsg, fontLight, 30);
+        smallerText.setFillColor(sf::Color::Black);
+        smallerText.setPosition((win.getSize().x - smallerText.getLocalBounds().width) / 2, ((win.getSize().y - smallerText.getLocalBounds().height) / 2) + 100);
+
+        // draw calls
+        win.draw(background);
+        win.draw(border);
+        win.draw(headingText);
+        win.draw(smallerText);
     }
 }
 
@@ -107,20 +154,30 @@ void Board::MakeMove(Move move)
 
     Piece* startPiece = boardState.board[move.startX][move.startY];
 
+    // set fifty move rule
+    if (startPiece->GetType() == 'P' || (boardState.board[move.endX][move.endY] != nullptr))
+    {
+        movesSincePawnOrCapture = 0;
+    }
+    else
+    {
+        movesSincePawnOrCapture++;
+    }
+
     // set en passant
-    if (startPiece->GetType() == 'P' && std::abs(move.endX - move.startX) == 2) 
+    if (startPiece->GetType() == 'P' && std::abs(move.endX - move.startX) == 2)
     {
         int enPassantRow = (move.startX + move.endX) / 2;
         boardState.enPassantSquare = std::make_pair(enPassantRow, move.startY);
     }
-    else 
+    else
     {
         boardState.enPassantSquare = std::nullopt;
     }
 
     // handle captures
     Piece* capturedPiece = boardState.board[move.endX][move.endY];
-    if (capturedPiece != nullptr) 
+    if (capturedPiece != nullptr)
     {
         delete capturedPiece;
     }
@@ -192,18 +249,44 @@ void Board::MakeMove(Move move)
 
     // update turn
     Update();
+
+    // handle fifty move rule
+    if (movesSincePawnOrCapture >= 50)
+    {
+        result = 0;
+        gameOver = true;
+        gameOverMsg = "Draw by Fifty Move Rule";
+
+        return;
+    }
+
+    // handle checkmate / stalemate
+    if (PossibleMoves().size() == 0)
+    {
+        if (IsChecked(turn))
+        {
+            result = (turn == 'W') ? -1 : 1;
+            gameOver = true;
+            gameOverMsg = "Win by Checkmate";
+
+            return;
+        }
+        else
+        {
+            result = 0;
+            gameOver = true;
+            gameOverMsg = "Draw by Stalemate";
+
+            return;
+        }
+    }
+
+
 }
 
 void Board::Update()
 {
-    if (turn == 'W')
-    {
-        turn = 'B';
-    }
-    else if (turn == 'B')
-    {
-        turn = 'W';
-    }
+    turn = (turn == 'W') ? 'B' : 'W';
 }
 
 int Board::Evaluate()
@@ -215,8 +298,13 @@ int Board::Evaluate()
     return score;
 }
 
-std::vector<Move> Board::PossibleMoves()
+std::vector<Move> Board::PossibleMoves(char color)
 {
+    if (color == '\0')
+    {
+        color = turn;
+    }
+
     std::vector<Move> allMoves;
 
     for (int row = 0; row < 8; row++)
@@ -226,7 +314,7 @@ std::vector<Move> Board::PossibleMoves()
             auto piece = boardState.board[row][col];
             if (piece != nullptr)
             {
-                if (piece->GetColor() == turn)
+                if (piece->GetColor() == color)
                 {
                     std::vector<Move> pieceMoves = piece->PossibleMoves(boardState);
                     allMoves.insert(allMoves.end(), pieceMoves.begin(), pieceMoves.end());
@@ -236,11 +324,6 @@ std::vector<Move> Board::PossibleMoves()
     }
 
     return allMoves;
-}
-
-bool Board::IsOver() const
-{
-    return false;
 }
 
 void Board::RightClick(int row, int col)
@@ -325,7 +408,45 @@ bool Board::isHighlighted(int row, int col) const
     return isHighlighted;
 }
 
-bool Board::IsChecked() const
+bool Board::IsChecked(char color) const
 {
-    return false;
+    // find king
+    int kingRow;
+    int kingCol;
+
+    bool kingFound = false;
+
+    for (int row = 0; row < 8 && !kingFound; row++)
+    {
+        for (int col = 0; col < 8 && !kingFound; col++)
+        {
+            Piece* piece = boardState.board[row][col];
+            if (piece)
+            {
+                if (piece->GetType() == 'K' && piece->GetColor() == color)
+                {
+                    kingRow = row;
+                    kingCol = col;
+
+                    kingFound = true;
+                }
+            }
+        }
+    }
+
+    // check if king under attack
+    char opponentColor = (color == 'W') ? 'B' : 'W';
+    auto board = boardState.board;
+
+    return SquareUnderAttack(board, kingRow, kingCol, opponentColor);
+}
+
+bool Board::IsOver() const
+{
+    return gameOver;
+}
+
+std::string Board::GetGameOverMsg() const
+{
+    return gameOverMsg;
 }

@@ -20,7 +20,7 @@ public:
     void Update();
 
     int Evaluate();
-    std::vector<Move> PossibleMoves();
+    std::vector<Move> PossibleMoves(char color='\0');
 
     void Test(int row, int col)
     {
@@ -38,9 +38,10 @@ public:
     void LeftClick(int row, int col);
     bool isHighlighted(int row, int col) const;
 
-    bool IsChecked() const;
+    bool IsChecked(char color) const;
     bool IsOver() const;
 
+    std::string GetGameOverMsg() const;
 private:
     char turn;
     int depth;
@@ -53,4 +54,10 @@ private:
     std::vector<std::pair<int, int>> userhighlightedSquares;
 
     Piece* lastClickedPiece = nullptr;
+
+    int movesSincePawnOrCapture;
+
+    int result;
+    bool gameOver;
+    std::string gameOverMsg;
 };
