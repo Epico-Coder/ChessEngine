@@ -591,6 +591,25 @@ std::vector<Move> Pawn::PossibleMoves(const BoardState& boardState)
         }
     }
 
+    // different promotion moves
+    if ((color == 'W' && pos.x == 0) || (color == 'B' && pos.x == 7)) 
+    {
+        for (int side : {-1, 1}) 
+        {
+            int newRow = pos.x;
+            int newCol = pos.y + side;
+            if (WithinBounds(newRow, newCol) && boardState.board[newRow][newCol] && boardState.board[newRow][newCol]->GetColor() != this->color) 
+            {
+                for (char promotion : {'Q', 'R', 'B', 'N'}) 
+                {
+                    Move move = Move(pos.x, pos.y, newRow, newCol);
+                    move.promotionPiece = promotion;
+                    allMoves.push_back(move);
+                }
+            }
+        }
+    }
+
     allMoves = FindLegalMoves(allMoves, board, color);
 
     return allMoves;

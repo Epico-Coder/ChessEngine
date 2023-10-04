@@ -6,4 +6,6 @@ struct Move
     int startY;
     int endX;
     int endY;
+
+    char promotionPiece = '\0';
 };

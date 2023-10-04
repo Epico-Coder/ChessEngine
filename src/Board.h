@@ -41,6 +41,8 @@ public:
     bool IsChecked(char color) const;
     bool IsOver() const;
 
+    bool IsInsufficientMaterial() const;
+
     std::string GetGameOverMsg() const;
 private:
     char turn;

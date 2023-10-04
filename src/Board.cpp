@@ -239,12 +239,35 @@ void Board::MakeMove(Move move)
                     delete boardState.board[move.endX][move.endY];
                 }
 
-                std::string filename = "_queen.png";
+                Piece* newPiece = nullptr;
+                std::string pieceName;
+
+                switch (move.promotionPiece)
+                {
+                case 'Q': pieceName = "queen"; break;
+                case 'R': pieceName = "rook"; break;
+                case 'B': pieceName = "bishop"; break;
+                case 'N': pieceName = "knight"; break;
+
+                default: pieceName = "queen"; break;
+                }
+
+                std::string filename = "_" + pieceName + ".png";
                 filename.insert(filename.begin(), std::tolower(turn));
+
+                switch (move.promotionPiece) 
+                {
+                case 'Q': newPiece = new Queen(turn, sf::Vector2i(move.endX, move.endY), filename); break;
+                case 'R': newPiece = new Rook(turn, sf::Vector2i(move.endX, move.endY), filename); break;
+                case 'B': newPiece = new Bishop(turn, sf::Vector2i(move.endX, move.endY), filename); break;
+                case 'N': newPiece = new Knight(turn, sf::Vector2i(move.endX, move.endY), filename); break;
+
+                default: newPiece = new Queen(turn, sf::Vector2i(move.endX, move.endY), filename); break;
+                }
+
                 std::cout << filename << std::endl;
 
-                Piece* piece = new Queen(turn, sf::Vector2i(move.endX, move.endY), filename);
-                boardState.board[move.endX][move.endY] = piece;
+                boardState.board[move.endX][move.endY] = newPiece;
             }
         }
     }
@@ -271,7 +294,6 @@ void Board::MakeMove(Move move)
         gameOverMsg = "Draw by Three-Fold Repition";
     }
 
-
     // handle checkmate / stalemate
     if (PossibleMoves().size() == 0)
     {
@@ -293,6 +315,15 @@ void Board::MakeMove(Move move)
         }
     }
 
+    // handle insufficient material
+    if (IsInsufficientMaterial())
+    {
+        result = 0;
+        gameOver = true;
+        gameOverMsg = "Draw by Insufficient Material";
+
+        return;
+    }
 
 }
 
@@ -377,6 +408,7 @@ void Board::LeftClick(int row, int col)
 
             return;
         }
+
         // clicked on a highlight (possible move)
         if (isHighlighted(row, col))
         {
@@ -457,6 +489,70 @@ bool Board::IsChecked(char color) const
 bool Board::IsOver() const
 {
     return gameOver;
+}
+
+bool Board::IsInsufficientMaterial() const
+{
+    int whiteBishopsLight = 0;
+    int whiteBishopsDark = 0;
+    int blackBishopsLight = 0;
+    int blackBishopsDark = 0;
+    int whiteKnights = 0;
+    int blackKnights = 0;
+    int otherWhitePieces = 0;
+    int otherBlackPieces = 0;
+
+    for (int row = 0; row < 8; row++)
+    {
+        for (int col = 0; col < 8; col++)
+        {
+            Piece* piece = boardState.board[row][col];
+            if (piece)
+            {
+                switch (piece->GetType())
+                {
+                case 'B':
+                    if (piece->GetColor() == 'W')
+                        (row + col) % 2 == 0 ? whiteBishopsLight++ : whiteBishopsDark++;
+                    else
+                        (row + col) % 2 == 0 ? blackBishopsLight++ : blackBishopsDark++;
+                    break;
+                case 'N':
+                    piece->GetColor() == 'W' ? whiteKnights++ : blackKnights++;
+                    break;
+                case 'K':
+                    break;
+                default:
+                    piece->GetColor() == 'W' ? otherWhitePieces++ : otherBlackPieces++;
+                }
+            }
+        }
+    }
+
+    if (otherWhitePieces == 0 && otherBlackPieces == 0)
+    {
+        if (whiteKnights == 0 && blackKnights == 0 && whiteBishopsLight + whiteBishopsDark <= 1 && blackBishopsLight + blackBishopsDark <= 1)
+        {
+            return true;
+        }
+
+        if (whiteKnights <= 1 && blackKnights <= 1 && ((whiteBishopsLight == 1 && blackBishopsLight == 1) || (whiteBishopsDark == 1 && blackBishopsDark == 1)))
+        {
+            return true;
+        }
+
+        if (whiteKnights == 2 && blackKnights == 0 && whiteBishopsLight == 0 && whiteBishopsDark == 0 && blackBishopsLight == 0 && blackBishopsDark == 0)
+        {
+            return true;
+        }
+
+        if (blackKnights == 2 && whiteKnights == 0 && whiteBishopsLight == 0 && whiteBishopsDark == 0 && blackBishopsLight == 0 && blackBishopsDark == 0)
+        {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 std::string Board::GetGameOverMsg() const
