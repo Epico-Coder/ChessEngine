@@ -3,6 +3,7 @@
 #include "Board.h"
 #include "Piece.h"
 #include "Theme.h"
+#include "Search.h"
 
 #include <SFML/Graphics.hpp>
 
@@ -19,6 +20,10 @@ int main()
     };
 
     Board board(theme);
+
+    Search search(2);
+
+    int evaluation = 0;
 
     while (win.isOpen())
     {
@@ -45,7 +50,6 @@ int main()
                         auto moves = board.PossibleMoves();
 
                         int len = int(moves.size());
-                        std::cout << len << std::endl;
 
                         int row = y / 100;
                         int col = x / 100;
@@ -68,6 +72,9 @@ int main()
         }
 
         win.clear();
+
+        evaluation = search.Evaluate(board);
+        std::cout << evaluation << std::endl;
 
         board.Draw(win);
 

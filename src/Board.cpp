@@ -1,6 +1,7 @@
 #include <iostream>
 #include <math.h>
 #include <algorithm>
+#include <iomanip>
 
 #include "Board.h"
 
@@ -70,7 +71,7 @@ void Board::Draw(sf::RenderWindow& win)
             sf::RectangleShape square(sf::Vector2f(squareSize - (8 * border), squareSize - (8 * border)));
             square.setPosition(border + (col * (squareSize + (1 * border))), border + (row * (squareSize + (1 * border))));
 
-            if (isHighlighted(row, col))
+            if (IsHighlighted(row, col))
             {
                 square.setFillColor(theme.color3);
             }
@@ -149,10 +150,10 @@ void Board::Draw(sf::RenderWindow& win)
     }
 }
 
-void Board::MakeMove(Move move)
+void Board::MakeMove(Move& move)
 {
     depth++;
-    std::cout << "MADE MOVE " << depth << ": (" << move.startX << ", " << move.startY << ")--> (" << move.endX << ", " << move.endY << ")" << std::endl;
+    //std::cout << "MADE MOVE " << depth << ": (" << move.startX << ", " << move.startY << ")--> (" << move.endX << ", " << move.endY << ")" << std::endl;
 
     Piece* startPiece = boardState.board[move.startX][move.startY];
 
@@ -327,13 +328,57 @@ void Board::MakeMove(Move move)
 
 }
 
+void Board::UndoMove(Move& move)
+{
+    Piece* movedPiece = boardState.board[move.endX][move.endY];
+    movedPiece->SetPos(move.startX, move.startY);
+    boardState.board[move.startX][move.startY] = movedPiece;
+    boardState.board[move.endX][move.endY] = move.capturedPiece;
+
+    // Reverse the move for en passant
+    if (move.capturedPiece == nullptr && movedPiece->GetType() == 'P' && move.startY != move.endY) {
+        boardState.board[move.endX][move.startY] = nullptr; // Ensure the en passant captured pawn remains captured.
+    }
+
+    // Reverse castling
+    if (movedPiece->GetType() == 'K' && abs(move.startY - move.endY) == 2) {
+        if (move.endY > move.startY) {
+            // Kingside castle undo
+            Piece* rook = boardState.board[move.endX][5];
+            rook->SetPos(move.endX, 7);
+            boardState.board[move.endX][7] = rook;
+            boardState.board[move.endX][5] = nullptr;
+        }
+        else {
+            // Queenside castle undo
+            Piece* rook = boardState.board[move.endX][3];
+            rook->SetPos(move.endX, 0);
+            boardState.board[move.endX][0] = rook;
+            boardState.board[move.endX][3] = nullptr;
+        }
+    }
+
+    // Reverse the promotion
+    if (movedPiece->GetType() != move.promotionPiece && move.promotionPiece != '\0') {
+        delete movedPiece;  // Remove the promoted piece.
+        boardState.board[move.startX][move.startY] = new Pawn(turn, sf::Vector2i(move.startX, move.startY), "appropriate_path");
+    }
+
+    // Restore any state-related properties, e.g., en passant square, castling rights, turn, etc.
+    // Note: You'll need to adjust the Move struct to store previous states of these properties.
+
+    depth--;
+}
+
 void Board::Update()
 {
+    //DisplayBoard();
+
     boardHistory.push_back(boardState.board);
     turn = (turn == 'W') ? 'B' : 'W';
 }
 
-int Board::Evaluate()
+int Board::Evaluate() const
 {
     int score = 0;
 
@@ -342,7 +387,7 @@ int Board::Evaluate()
     return score;
 }
 
-std::vector<Move> Board::PossibleMoves(char color)
+std::vector<Move> Board::PossibleMoves(char color) const
 {
     if (color == '\0')
     {
@@ -368,6 +413,47 @@ std::vector<Move> Board::PossibleMoves(char color)
     }
 
     return allMoves;
+}
+
+void Board::DisplayBoard() const
+{
+    // Print column labels
+    std::cout << "      ";
+    for (int j = 0; j < 8; j++) {
+        std::cout << std::left << std::setw(7) << ('a' + j);
+    }
+    std::cout << std::endl;
+
+    // Print top border
+    std::cout << "      ";
+    for (int j = 0; j < 8; j++) {
+        std::cout << "+------";
+    }
+    std::cout << "+" << std::endl;
+
+    for (int i = 0; i < 8; i++) {
+        std::cout << (8 - i) << "     ";  // Row labels
+        for (int j = 0; j < 8; j++) {
+            std::cout << "|";  // Vertical border
+            Piece* piece = boardState.board[i][j];
+            std::string cellContent;
+            if (piece) {
+                cellContent = piece->GetType() + std::string("(") + std::to_string(piece->GetPos().x) + "," + std::to_string(piece->GetPos().y) + ")";
+            }
+            else {
+                cellContent = "------";
+            }
+            std::cout << std::left << std::setw(6) << cellContent;
+        }
+        std::cout << "|" << std::endl;  // Vertical border at end of row
+
+        // Print horizontal border between rows
+        std::cout << "      ";
+        for (int j = 0; j < 8; j++) {
+            std::cout << "+------";
+        }
+        std::cout << "+" << std::endl;
+    }
 }
 
 void Board::RightClick(int row, int col)
@@ -410,7 +496,7 @@ void Board::LeftClick(int row, int col)
         }
 
         // clicked on a highlight (possible move)
-        if (isHighlighted(row, col))
+        if (IsHighlighted(row, col))
         {
             piecehighlightedSquares.clear();
             userhighlightedSquares.clear();
@@ -443,7 +529,7 @@ void Board::LeftClick(int row, int col)
     lastClickedPiece = clickedPiece;
 }
 
-bool Board::isHighlighted(int row, int col) const
+bool Board::IsHighlighted(int row, int col) const
 {
     auto predicate = [row, col](const auto& pair) { return (pair.first == row) && (pair.second == col); };
 
@@ -553,6 +639,16 @@ bool Board::IsInsufficientMaterial() const
     }
 
     return false;
+}
+
+int Board::GetTurnInt() const
+{
+    return (turn == 'W') ? 1 : -1;
+}
+
+int Board::GetResultInt() const
+{
+    return result;
 }
 
 std::string Board::GetGameOverMsg() const

@@ -65,11 +65,14 @@ std::vector<Move> FindLegalMoves(std::vector<Move> allMoves, std::array<std::arr
         // create copy
         auto tempBoard = board;
         
+        // store captured piece
+        Piece* capturedPiece = tempBoard[move.endX][move.endY];
+
         // make move
         tempBoard[move.endX][move.endY] = tempBoard[move.startX][move.startY];
         tempBoard[move.startX][move.startY] = nullptr;
 
-        if (tempBoard[move.endX][move.endY]->GetType() == 'K')
+        if (tempBoard[move.endX][move.endY] && tempBoard[move.endX][move.endY]->GetType() == 'K')
         {
             kingRow = move.endX;
             kingCol = move.endY;
@@ -100,12 +103,12 @@ char Piece::GetColor() const
 
 sf::Vector2i Piece::GetPos() const
 {
-    return pos;
+    return this->pos;
 }
 
 void Piece::SetPos(int row, int col)
 {
-    pos = sf::Vector2i(row, col);
+    this->pos = sf::Vector2i(row, col);
 }
 
 bool Piece::GetMoved() const
@@ -202,8 +205,6 @@ std::vector<Move> King::PossibleMoves(const BoardState& boardState)
     // checking for castle
     if (!moved)
     {
-        std::cout << "Not Moved!" << std::endl;
-
         int kingRow = pos.x;
         char opponentColor = (color == 'W') ? 'B' : 'W';
 
