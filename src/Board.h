@@ -49,6 +49,7 @@ private:
     Theme theme;
 
     BoardState boardState;
+    std::vector<std::array<std::array<Piece*, 8>, 8>> boardHistory;
 
     std::vector<std::pair<int, int>> piecehighlightedSquares;
     std::vector<std::pair<int, int>> userhighlightedSquares;

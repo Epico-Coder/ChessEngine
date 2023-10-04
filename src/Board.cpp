@@ -52,6 +52,8 @@ void Board::InitalizeBoard()
             boardState.board[6][i] = new Pawn('W', sf::Vector2i(6, i), "w_pawn.png");
         }
     }
+
+    boardHistory.push_back(boardState.board);
 }
 
 void Board::Draw(sf::RenderWindow& win)
@@ -260,6 +262,16 @@ void Board::MakeMove(Move move)
         return;
     }
 
+    // handle three-fold repition
+    int count = std::count(boardHistory.begin(), boardHistory.end(), boardState.board);
+    if (count >= 3)
+    {
+        result = 0;
+        gameOver = true;
+        gameOverMsg = "Draw by Three-Fold Repition";
+    }
+
+
     // handle checkmate / stalemate
     if (PossibleMoves().size() == 0)
     {
@@ -286,6 +298,7 @@ void Board::MakeMove(Move move)
 
 void Board::Update()
 {
+    boardHistory.push_back(boardState.board);
     turn = (turn == 'W') ? 'B' : 'W';
 }
 
